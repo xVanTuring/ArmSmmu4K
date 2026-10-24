@@ -136,6 +136,9 @@ int main(void)
         /* Configuration-access fault reporting clear, as the sheng Adreno SMMU firmware leaves it (0x002f0406). */
         reset(exid);memory[0]&=~0x30u;
         CHECK(!attach() && state.attached);
+        /* Free slots whose FAULT S2CR also carries CBNDX 0xff, as the pipa Adreno SMMU's read 0x000203ff (2026-10-24). */
+        reset(exid);memory[0xc08/4]=0x203ff;memory[0xc10/4]=0x203ff;
+        CHECK(!attach() && state.attached && result.streams_verified==2);
         reset(exid);
         CHECK(!ArmSmmu4KCheckFaultedStreams(&io,routes,2,2,&result) && !f.writes);
         CHECK(!attach());writes=f.writes;memory[0xc08/4]^=1;
@@ -151,5 +154,5 @@ int main(void)
         memory[0xc08/4]^=1;
         CHECK(ArmSmmu4KFaultStreams(&io,&state,&result)==ArmSmmu4KStateMismatch && f.writes==writes);
     }
-    printf("PASS: legacy/EXIDS stream attachment and quarantine, %u per-call I/O failure cases, 32 pre-write refusals, 2 attachments without GCFGFRE/GCFGFIE, actual context readback and unrelated-route isolation (software registers only)\n",fault_cases);
+    printf("PASS: legacy/EXIDS stream attachment and quarantine, %u per-call I/O failure cases, 32 pre-write refusals, 2 attachments without GCFGFRE/GCFGFIE, 2 attachments over FAULT S2CRs with CBNDX set, actual context readback and unrelated-route isolation (software registers only)\n",fault_cases);
 }

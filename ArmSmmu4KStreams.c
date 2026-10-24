@@ -40,8 +40,10 @@ static ArmSmmu4KStatus scan(const ArmSmmu4KIo *io,const ArmSmmu4KStream *s,unsig
             unsigned live=valid(r->id0,smr,s2cr);
             if(attached) {
                 if(smr!=(valid_smr(r->id0)|s[own].sid) || s2cr!=(bank|valid_s2cr(r->id0)))return ArmSmmu4KStateMismatch;
-            } else if((s2cr&~valid_s2cr(r->id0))!=FAULT ||
+            } else if(((s2cr>>16)&3)!=2 ||
                 (live && smr!=(valid_smr(r->id0)|s[own].sid)))return ArmSmmu4KBusy;
+            /* A slot is free when its S2CR type is FAULT; with that type the hardware ignores the other fields, which
+             * firmware may leave set: the pipa Adreno SMMU's unused S2CRs read 0x000203ff (CBNDX 0xff), sheng's 0x00020000. */
             ++r->streams_verified;
         } else if(valid(r->id0,smr,s2cr)) {
             if(!(s2cr&(3u<<16)) && (s2cr&255)==bank)return ArmSmmu4KBusy;
